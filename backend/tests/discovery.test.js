@@ -17,6 +17,18 @@ describe('Topic and category discovery', () => {
     expect(extractTopics([{ title: 'A unique keyword', tags: [] }], 10)).toEqual([]);
   });
 
+  it('returns empty discovery results when there are no published articles', async () => {
+    const store = require('../models/articleStore');
+    const original = store.inMemoryArticles;
+    store.inMemoryArticles = [];
+    try {
+      await expect(getTrendingTopics(8)).resolves.toEqual([]);
+      await expect(getPopularCategories(6)).resolves.toEqual([]);
+    } finally {
+      store.inMemoryArticles = original;
+    }
+  });
+
   it('excludes drafts and only counts public articles for trending topics', async () => {
     const store = require('../models/articleStore');
     const original = store.inMemoryArticles;
@@ -49,7 +61,11 @@ describe('Topic and category discovery', () => {
     ]);
     expect(topics.statusCode).toBe(200);
     expect(topics.body.success).toBe(true);
+    expect(topics.body.count).toBeGreaterThan(0);
+    expect(Array.isArray(topics.body.topics)).toBe(true);
     expect(categories.statusCode).toBe(200);
+    expect(categories.body.count).toBeGreaterThan(0);
+    expect(Array.isArray(categories.body.categories)).toBe(true);
     expect(categories.body.ranking).toMatch(/views/);
     expect(invalid.statusCode).toBe(400);
   });

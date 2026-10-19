@@ -205,6 +205,11 @@ export const articleAPI = {
     API.get('/articles/admin/all'),
 };
 
+export const discoveryAPI = {
+  getTrendingTopics: (params) => API.get('/discovery/trending-topics', { params }),
+  getPopularCategories: (params) => API.get('/discovery/popular-categories', { params }),
+};
+
 // ======================================================
 // Quiz API
 // ======================================================

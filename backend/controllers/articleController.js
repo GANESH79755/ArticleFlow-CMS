@@ -64,6 +64,15 @@ const isMongoConnected = () => {
 const getArticles = async (req, res) => {
   try {
     const { status, category, search } = req.query;
+    if (
+      (search !== undefined && (typeof search !== 'string' || search.length > 100)) ||
+      (category !== undefined && (typeof category !== 'string' || category.length > 50))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search must be at most 100 characters and category at most 50 characters.',
+      });
+    }
     const isAdmin = req.user && req.user.role === 'admin';
 
     if (isMongoConnected()) {
@@ -86,9 +95,12 @@ const getArticles = async (req, res) => {
       }
 
       if (search) {
+        const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         filter.$or = [
-          { title: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
+          { title: { $regex: safeSearch, $options: 'i' } },
+          { description: { $regex: safeSearch, $options: 'i' } },
+          { content: { $regex: safeSearch, $options: 'i' } },
+          { tags: { $regex: safeSearch, $options: 'i' } },
         ];
       }
 
@@ -126,7 +138,9 @@ const getArticles = async (req, res) => {
       articles = articles.filter(
         (a) =>
           (a.title && a.title.toLowerCase().includes(term)) ||
-          (a.description && a.description.toLowerCase().includes(term))
+          (a.description && a.description.toLowerCase().includes(term)) ||
+          (a.content && a.content.toLowerCase().includes(term)) ||
+          (Array.isArray(a.tags) && a.tags.some((tag) => String(tag).toLowerCase().includes(term)))
       );
     }
 

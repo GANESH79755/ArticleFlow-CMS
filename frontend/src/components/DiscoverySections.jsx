@@ -14,7 +14,7 @@ const SectionMessage = ({ children, onRetry }) => (
   </div>
 );
 
-const DiscoveryCard = ({ title, subtitle, icon: Icon, loading, error, empty, onRetry, children }) => (
+const DiscoveryCard = ({ title, subtitle, icon: Icon, loading, error, errorMessage, empty, onRetry, children }) => (
   <section className="bg-white border border-[#EDE8DF] rounded-3xl p-6 sm:p-7 shadow-xs">
     <div className="flex items-start gap-3 mb-5">
       <div className="w-10 h-10 shrink-0 rounded-2xl bg-emerald-50 text-[#1A382B] flex items-center justify-center">
@@ -26,7 +26,7 @@ const DiscoveryCard = ({ title, subtitle, icon: Icon, loading, error, empty, onR
       </div>
     </div>
     {loading ? <SectionMessage>Loading discovery data…</SectionMessage>
-      : error ? <SectionMessage onRetry={onRetry}>We couldn’t load this section right now.</SectionMessage>
+      : error ? <SectionMessage onRetry={onRetry}>{errorMessage || 'Discovery data could not be loaded. Please retry.'}</SectionMessage>
         : empty ? <SectionMessage>No published articles are available yet. Check back as new writing appears.</SectionMessage>
           : children}
   </section>
@@ -35,27 +35,34 @@ const DiscoveryCard = ({ title, subtitle, icon: Icon, loading, error, empty, onR
 export default function DiscoverySections() {
   const [topics, setTopics] = React.useState([]);
   const [categories, setCategories] = React.useState([]);
-  const [topicState, setTopicState] = React.useState({ loading: true, error: false });
-  const [categoryState, setCategoryState] = React.useState({ loading: true, error: false });
+  const [topicState, setTopicState] = React.useState({ loading: true, error: false, errorMessage: '' });
+  const [categoryState, setCategoryState] = React.useState({ loading: true, error: false, errorMessage: '' });
+
+  const getRequestError = (error) => {
+    if (error.response?.status === 404) {
+      return 'The connected backend does not have the discovery routes yet. Deploy the current backend version and retry.';
+    }
+    return error.response?.data?.message || 'Discovery data could not be loaded. Please retry.';
+  };
 
   const loadTopics = React.useCallback(async () => {
-    setTopicState({ loading: true, error: false });
+    setTopicState({ loading: true, error: false, errorMessage: '' });
     try {
       const { data } = await discoveryAPI.getTrendingTopics({ limit: 8 });
       setTopics(data.topics || []);
-      setTopicState({ loading: false, error: false });
-    } catch {
-      setTopicState({ loading: false, error: true });
+      setTopicState({ loading: false, error: false, errorMessage: '' });
+    } catch (error) {
+      setTopicState({ loading: false, error: true, errorMessage: getRequestError(error) });
     }
   }, []);
   const loadCategories = React.useCallback(async () => {
-    setCategoryState({ loading: true, error: false });
+    setCategoryState({ loading: true, error: false, errorMessage: '' });
     try {
       const { data } = await discoveryAPI.getPopularCategories({ limit: 6 });
       setCategories(data.categories || []);
-      setCategoryState({ loading: false, error: false });
-    } catch {
-      setCategoryState({ loading: false, error: true });
+      setCategoryState({ loading: false, error: false, errorMessage: '' });
+    } catch (error) {
+      setCategoryState({ loading: false, error: true, errorMessage: getRequestError(error) });
     }
   }, []);
 

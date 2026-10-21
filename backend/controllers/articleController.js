@@ -95,12 +95,18 @@ const getArticles = async (req, res) => {
       }
 
       if (search) {
-        const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const escapedSearch = search
+          .trim()
+          .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        const searchRegex = new RegExp(escapedSearch, 'i');
+
         filter.$or = [
-          { title: { $regex: safeSearch, $options: 'i' } },
-          { description: { $regex: safeSearch, $options: 'i' } },
-          { content: { $regex: safeSearch, $options: 'i' } },
-          { tags: { $regex: safeSearch, $options: 'i' } },
+          { title: searchRegex },
+          { description: searchRegex },
+          { content: searchRegex },
+          { tags: searchRegex },
+          { category: searchRegex },
         ];
       }
 
@@ -134,13 +140,20 @@ const getArticles = async (req, res) => {
     }
 
     if (search) {
-      const term = search.toLowerCase();
+      const escapedSearch = search
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      const searchRegex = new RegExp(escapedSearch, 'i');
+
       articles = articles.filter(
         (a) =>
-          (a.title && a.title.toLowerCase().includes(term)) ||
-          (a.description && a.description.toLowerCase().includes(term)) ||
-          (a.content && a.content.toLowerCase().includes(term)) ||
-          (Array.isArray(a.tags) && a.tags.some((tag) => String(tag).toLowerCase().includes(term)))
+          searchRegex.test(a.title || '') ||
+          searchRegex.test(a.description || '') ||
+          searchRegex.test(a.content || '') ||
+          searchRegex.test(a.category || '') ||
+          (Array.isArray(a.tags) &&
+            a.tags.some((tag) => searchRegex.test(String(tag))))
       );
     }
 
@@ -898,34 +911,135 @@ const getRecommendedArticles = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (mongoose.connection && mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(id)) {
-      const currentArticle = await Article.findById(id);
-      if (!currentArticle) {
-        return res.status(404).json({ success: false, message: 'Article not found.' });
+// Common words that should not affect article similarity
+ const stopWords = new Set([
+  'the', 'and', 'for', 'with', 'from', 'this',
+  'that', 'these', 'those', 'are', 'was', 'were',
+  'has', 'have', 'had', 'into', 'about', 'their',
+  'they', 'them', 'then', 'than', 'also', 'more',
+  'most', 'some', 'such', 'using', 'used', 'use',
+  'how', 'what', 'when', 'where', 'which', 'will',
+  'would', 'could', 'should', 'can', 'its', 'our',
+  'your', 'you', 'not', 'but', 'all', 'any',
+  'who', 'why', 'very', 'been', 'being', 'through',
+  'over', 'under', 'between', 'after', 'before', 'during',
+  'each', 'other', 'only', 'both', 'many', 'much',
+  'new', 'one', 'two', 'first', 'last'
+]);
+
+    // Convert text into meaningful unique words
+    const getWords = (text = '') => {
+      return [
+        ...new Set(
+          text
+            .toLowerCase()
+            .split(/\W+/)
+            .filter(
+              (word) => word.length > 2 && !stopWords.has(word)
+            )
+        ),
+      ];
+    };
+
+    // Calculate similarity score between two articles
+    const calculateScore = (currentArticle, article) => {
+      let score = 0;
+
+      // --------------------------------
+      // 1. Same category
+      // --------------------------------
+      if (
+        currentArticle.category &&
+        article.category &&
+        currentArticle.category.toLowerCase() ===
+          article.category.toLowerCase()
+      ) {
+        score += 3;
       }
 
-      const recommendations = await Article.find({
+      // --------------------------------
+      // 2. Matching tags
+      // --------------------------------
+      const currentTags = Array.isArray(currentArticle.tags)
+        ? currentArticle.tags.map((tag) => tag.toLowerCase())
+        : [];
+
+      const articleTags = Array.isArray(article.tags)
+        ? article.tags.map((tag) => tag.toLowerCase())
+        : [];
+
+      const matchingTags = currentTags.filter((tag) =>
+        articleTags.includes(tag)
+      );
+
+      // Tags are a strong signal of similarity
+      score += matchingTags.length * 5;
+
+      // --------------------------------
+      // 3. Title similarity
+      // --------------------------------
+      const currentTitleWords = getWords(currentArticle.title);
+      const articleTitleWords = getWords(article.title);
+
+      const titleMatches = currentTitleWords.filter((word) =>
+        articleTitleWords.includes(word)
+      );
+
+      // Title matches are also a strong signal
+      score += titleMatches.length * 4;
+
+      // --------------------------------
+      // 4. Content similarity
+      // --------------------------------
+      const currentContentWords = getWords(currentArticle.content);
+      const articleContentWords = getWords(article.content);
+
+      const contentMatches = currentContentWords.filter((word) =>
+        articleContentWords.includes(word)
+      );
+
+      // Content is useful, but weaker than tags/title.
+      // Maximum contribution is 5 points.
+      score += Math.min(contentMatches.length, 5);
+
+      return score;
+    };
+
+    // ==========================================
+    // MongoDB
+    // ==========================================
+    if (
+      mongoose.connection &&
+      mongoose.connection.readyState === 1 &&
+      mongoose.Types.ObjectId.isValid(id)
+    ) {
+      const currentArticle = await Article.findById(id);
+
+      if (!currentArticle) {
+        return res.status(404).json({
+          success: false,
+          message: 'Article not found.',
+        });
+      }
+
+      // Only published articles can be recommended
+      const candidates = await Article.find({
         _id: { $ne: id },
         status: 'published',
-        $or: [
-          { category: currentArticle.category },
-          { tags: { $in: currentArticle.tags || [] } }
-        ],
-      })
-        .populate('author', 'name email role avatar')
-        .limit(4);
+      }).populate('author', 'name email role avatar');
 
-      if (recommendations.length < 4) {
-        const existingIds = recommendations.map(r => r._id).concat(id);
-        const fill = await Article.find({
-          _id: { $nin: existingIds },
-          status: 'published',
-        })
-          .populate('author', 'name email role avatar')
-          .limit(4 - recommendations.length);
-
-        recommendations.push(...fill);
-      }
+      const recommendations = candidates
+        .map((article) => ({
+          article,
+          score: calculateScore(currentArticle, article),
+        }))
+        // Ignore very weak matches
+        .filter((item) => item.score >= 4)
+        // Highest similarity first
+        .sort((a, b) => b.score - a.score)
+        // Return maximum 4 recommendations
+        .slice(0, 4)
+        .map((item) => item.article);
 
       return res.status(200).json({
         success: true,
@@ -934,23 +1048,53 @@ const getRecommendedArticles = async (req, res) => {
       });
     }
 
+    // ==========================================
+    // In-memory fallback
+    // ==========================================
     const articleStore = require('../models/articleStore');
-    const all = (articleStore.inMemoryArticles || []).filter(a => a.status === 'published');
-    const current = (articleStore.inMemoryArticles || []).find(a => a._id === id || a.id === id);
-    let list = all.filter(a => (a._id !== id && a.id !== id));
-    if (current?.category) {
-      const matchCat = list.filter(a => a.category === current.category);
-      if (matchCat.length > 0) list = matchCat;
+
+    const all = (articleStore.inMemoryArticles || []).filter(
+      (article) => article.status === 'published'
+    );
+
+    const current = (articleStore.inMemoryArticles || []).find(
+      (article) => article._id === id || article.id === id
+    );
+
+    if (!current) {
+      return res.status(404).json({
+        success: false,
+        message: 'Article not found.',
+      });
     }
 
-    res.status(200).json({
+    const recommendations = all
+      .filter(
+        (article) =>
+          article._id !== id &&
+          article.id !== id
+      )
+      .map((article) => ({
+        article,
+        score: calculateScore(current, article),
+      }))
+      // Ignore very weak matches
+      .filter((item) => item.score >= 4)
+      // Highest similarity first
+      .sort((a, b) => b.score - a.score)
+      // Return maximum 4 recommendations
+      .slice(0, 4)
+      .map((item) => item.article);
+
+    return res.status(200).json({
       success: true,
-      count: list.slice(0, 4).length,
-      recommendations: list.slice(0, 4),
+      count: recommendations.length,
+      recommendations,
     });
   } catch (error) {
     console.error('Get recommended articles error:', error);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: 'Failed to fetch recommendations.',
     });

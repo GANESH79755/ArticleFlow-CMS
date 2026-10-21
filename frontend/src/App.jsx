@@ -39,10 +39,11 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen flex flex-col bg-[#FAF7F2] text-stone-900 selection:bg-[#1A382B] selection:text-white">
+        <div className="min-h-screen flex flex-col md:flex-row bg-[#FAF7F2] text-stone-900 selection:bg-[#1A382B] selection:text-white">
           <Navbar />
 
-          <main className="flex-1">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <main className="flex-1">
             <Routes>
 
               {/* ================================================= */}
@@ -284,9 +285,10 @@ function App() {
               />
 
             </Routes>
-          </main>
+            </main>
 
-          <Footer />
+            <Footer />
+          </div>
         </div>
       </Router>
     </AuthProvider>

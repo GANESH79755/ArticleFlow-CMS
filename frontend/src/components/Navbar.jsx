@@ -304,9 +304,9 @@ const Navbar = () => {
 
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#FAF7F2]/95 dark:bg-[#121614]/95 backdrop-blur-md border-b border-[#EDE8DF] dark:border-[#2D3732] transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-18 py-3.5">
+    <aside className="sticky top-0 z-50 w-full shrink-0 bg-[#FAF7F2]/95 dark:bg-[#121614]/95 backdrop-blur-md border-b border-[#EDE8DF] dark:border-[#2D3732] transition-colors md:sticky md:h-screen md:w-64 md:border-b-0 md:border-r">
+      <div className="h-full px-4 sm:px-6 md:px-4">
+        <div className="flex items-center justify-between py-3.5 md:h-full md:flex-col md:items-stretch md:justify-start md:py-5">
 
           {/* Logo */}
           <Link
@@ -319,11 +319,12 @@ const Navbar = () => {
 
             <span className="font-serif text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
               Lumen
+              <span className="mt-0.5 block font-sans text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-400">Article studio</span>
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1.5">
+          <nav className="hidden md:mt-9 md:flex md:flex-col md:items-stretch md:gap-1.5" aria-label="Primary navigation">
             {navItems
               .filter(({ show }) => show !== false)
               .map(
@@ -337,7 +338,7 @@ const Navbar = () => {
                   <Link
                     key={to}
                     to={to}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition ${
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
                       active
                         ? 'bg-[#1A382B] text-white shadow-xs font-semibold'
                         : 'text-stone-700 dark:text-stone-300 hover:text-stone-950 dark:hover:text-white hover:bg-[#EFECE6]/70 dark:hover:bg-[#242C28]'
@@ -353,15 +354,15 @@ const Navbar = () => {
                   </Link>
                 )
               )}
-          </div>
+          </nav>
 
           {/* Right Section */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:mt-auto md:flex-col md:items-stretch md:gap-3 md:pt-8">
 
             {/* Dark Mode */}
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className="p-2 rounded-full text-stone-600 dark:text-stone-300 hover:bg-[#EFECE6] dark:hover:bg-[#242C28] transition"
+              className="p-2 rounded-full text-stone-600 dark:text-stone-300 hover:bg-[#EFECE6] dark:hover:bg-[#242C28] transition md:self-start"
               title={
                 darkMode
                   ? 'Switch to Light Mode'
@@ -387,7 +388,7 @@ const Navbar = () => {
                     !roleSwitcherOpen
                   )
                 }
-                className="hidden lg:flex items-center gap-1.5 bg-[#EFECE6] dark:bg-[#242C28] hover:bg-[#E7E2D9] px-3 py-1.5 rounded-xl text-xs font-semibold text-stone-700 dark:text-stone-300 border border-[#E2DDD3] dark:border-[#2D3732] transition"
+                className="hidden lg:flex items-center gap-1.5 bg-[#EFECE6] dark:bg-[#242C28] hover:bg-[#E7E2D9] px-3 py-1.5 rounded-xl text-xs font-semibold text-stone-700 dark:text-stone-300 border border-[#E2DDD3] dark:border-[#2D3732] transition md:w-full md:justify-start"
                 title="Switch Demo Persona"
               >
                 <Sparkles className="w-3.5 h-3.5 text-[#D97736]" />
@@ -396,7 +397,7 @@ const Navbar = () => {
               </button>
 
               {roleSwitcherOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-[#1C221F] border border-[#EDE8DF] dark:border-[#2D3732] rounded-2xl shadow-xl py-2 z-50">
+                <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-[#1C221F] border border-[#EDE8DF] dark:border-[#2D3732] rounded-2xl shadow-xl py-2 z-50 md:left-full md:right-auto md:top-0 md:mt-0 md:ml-2">
                   <div className="px-4 py-2 border-b border-[#EDE8DF] dark:border-[#2D3732]">
                     <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
                       Demo Persona Switcher
@@ -455,7 +456,7 @@ const Navbar = () => {
                         !userDropdownOpen
                       )
                     }
-                    className="flex items-center gap-2 bg-[#EFECE6] dark:bg-[#242C28] hover:bg-[#E7E2D9] px-3.5 py-1.5 rounded-full text-xs font-semibold text-stone-800 dark:text-stone-200 border border-[#E2DDD3] dark:border-[#2D3732] transition shadow-2xs"
+                    className="hidden sm:flex items-center gap-2 bg-[#EFECE6] dark:bg-[#242C28] hover:bg-[#E7E2D9] px-3.5 py-1.5 rounded-full text-xs font-semibold text-stone-800 dark:text-stone-200 border border-[#E2DDD3] dark:border-[#2D3732] transition shadow-2xs md:w-full md:justify-start md:rounded-xl"
                   >
                     <span className="truncate max-w-[140px] sm:max-w-[180px]">
                       {user?.name}
@@ -471,7 +472,7 @@ const Navbar = () => {
                   </button>
 
                   {userDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#1C221F] border border-[#EDE8DF] dark:border-[#2D3732] rounded-2xl shadow-xl py-2 z-50">
+                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#1C221F] border border-[#EDE8DF] dark:border-[#2D3732] rounded-2xl shadow-xl py-2 z-50 md:left-full md:right-auto md:top-0 md:mt-0 md:ml-2">
 
                       <div className="px-4 py-2.5 border-b border-[#EDE8DF] dark:border-[#2D3732] mb-1">
                         <p className="text-[11px] text-stone-500">
@@ -580,7 +581,7 @@ const Navbar = () => {
                         !notifDropdownOpen
                       )
                     }
-                    className="relative p-2 rounded-full text-stone-600 dark:text-stone-300 hover:text-stone-900 hover:bg-[#EFECE6] dark:hover:bg-[#242C28] transition"
+                    className="relative p-2 rounded-full text-stone-600 dark:text-stone-300 hover:text-stone-900 hover:bg-[#EFECE6] dark:hover:bg-[#242C28] transition md:self-start"
                     title="Notifications"
                   >
                     <Bell className="w-4.5 h-4.5" />
@@ -591,7 +592,7 @@ const Navbar = () => {
                   </button>
 
                   {notifDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1C221F] border border-[#EDE8DF] dark:border-[#2D3732] rounded-2xl shadow-xl overflow-hidden z-50">
+                    <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1C221F] border border-[#EDE8DF] dark:border-[#2D3732] rounded-2xl shadow-xl overflow-hidden z-50 md:left-full md:right-auto md:top-0 md:mt-0 md:ml-2">
 
                       <div className="px-4 py-3 border-b border-[#EDE8DF] dark:border-[#2D3732] flex items-center justify-between bg-[#FAF7F2] dark:bg-[#121614]">
                         <span className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100">
@@ -680,7 +681,7 @@ const Navbar = () => {
                 </Link>
               </>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2 md:flex-col md:items-stretch">
                 <Link
                   to="/login"
                   className="px-3.5 py-1.5 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:text-stone-950 rounded-xl hover:bg-[#EFECE6]/70 dark:hover:bg-[#242C28] transition"
@@ -717,7 +718,7 @@ const Navbar = () => {
 
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[#EDE8DF] dark:border-[#2D3732] bg-[#FAF7F2] dark:bg-[#121614] px-4 py-3 space-y-1.5">
+        <div className="absolute left-0 right-0 top-full md:hidden border-b border-[#EDE8DF] dark:border-[#2D3732] bg-[#FAF7F2] dark:bg-[#121614] px-4 py-3 space-y-1.5 shadow-lg">
           {navItems
             .filter(
               ({ show, to }) =>
@@ -778,7 +779,7 @@ const Navbar = () => {
           )}
         </div>
       )}
-    </nav>
+    </aside>
   );
 };
 

@@ -64,6 +64,15 @@ const isMongoConnected = () => {
 const getArticles = async (req, res) => {
   try {
     const { status, category, search } = req.query;
+    if (
+      (search !== undefined && (typeof search !== 'string' || search.length > 100)) ||
+      (category !== undefined && (typeof category !== 'string' || category.length > 50))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search must be at most 100 characters and category at most 50 characters.',
+      });
+    }
     const isAdmin = req.user && req.user.role === 'admin';
 
     if (isMongoConnected()) {
@@ -85,21 +94,21 @@ const getArticles = async (req, res) => {
         filter.category = category;
       }
 
- if (search) {
-  const escapedSearch = search
-    .trim()
-    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (search) {
+        const escapedSearch = search
+          .trim()
+          .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  const searchRegex = new RegExp(`\\b${escapedSearch}\\b`, 'i');
+        const searchRegex = new RegExp(escapedSearch, 'i');
 
-  filter.$or = [
-    { title: searchRegex },
-    { description: searchRegex },
-    { content: searchRegex },
-    { tags: searchRegex },
-    { category: searchRegex },
-  ];
-}
+        filter.$or = [
+          { title: searchRegex },
+          { description: searchRegex },
+          { content: searchRegex },
+          { tags: searchRegex },
+          { category: searchRegex },
+        ];
+      }
 
       const articles = await Article.find(filter)
         .populate('author', 'name email role avatar')
@@ -130,23 +139,23 @@ const getArticles = async (req, res) => {
       articles = articles.filter((a) => a.category === category);
     }
 
- if (search) {
-  const escapedSearch = search
-    .trim()
-    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (search) {
+      const escapedSearch = search
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  const searchRegex = new RegExp(`\\b${escapedSearch}\\b`, 'i');
+      const searchRegex = new RegExp(escapedSearch, 'i');
 
-  articles = articles.filter(
-    (a) =>
-      searchRegex.test(a.title || '') ||
-      searchRegex.test(a.description || '') ||
-      searchRegex.test(a.content || '') ||
-      searchRegex.test(a.category || '') ||
-      (Array.isArray(a.tags) &&
-        a.tags.some((tag) => searchRegex.test(tag)))
-  );
-}
+      articles = articles.filter(
+        (a) =>
+          searchRegex.test(a.title || '') ||
+          searchRegex.test(a.description || '') ||
+          searchRegex.test(a.content || '') ||
+          searchRegex.test(a.category || '') ||
+          (Array.isArray(a.tags) &&
+            a.tags.some((tag) => searchRegex.test(String(tag))))
+      );
+    }
 
     return res.status(200).json({
       success: true,
